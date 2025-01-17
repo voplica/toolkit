@@ -8,11 +8,19 @@ on:
       package:
         required: true
         description: 'core, artifact, cache, exec, github, glob, http-client, io, tool-cache, attest'
+      test:
+        default: true
+        type: boolean
+        description: 'If tests step is enabled'
 
 jobs:
-  test:
-    runs-on: macos-latest-large
-
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
     steps:
       - name: setup repo
         uses: actions/checkout@v4
@@ -24,9 +32,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
+          registry-url: https://npm.pkg.github.com/
+
+      - name: Create versions
+        id: versions
+        uses: voplica/sem-ver-action@v1.0.4
+        with:
+          gitHubToken: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: setup authentication
+        run: echo "//npm.pkg.github.com/:_authToken=${NPM_TOKEN}" >> .npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: npm install
         run: npm install
+
+      - name: TS-Node - Update Package Version
+        run: npm version v${{ steps.versions.outputs.ver_semVerNoMeta }} --allow-same-version
+        working-directory: packages/${{ github.event.inputs.package }}
 
       - name: bootstrap
         run: npm run bootstrap
@@ -35,51 +59,24 @@ jobs:
         run: npm run build
 
       - name: test
-        run: npm run test
+        run: |
+          if [[ "${{ github.event.inputs.test }}" == "true" ]]; then
+            npm run test
+          fi
+
+      - name: set registry
+        run: npm config set registry https://npm.pkg.github.com/
 
       - name: pack
         run: npm pack
         working-directory: packages/${{ github.event.inputs.package }}
 
-      - name: upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.event.inputs.package }}
-          path: packages/${{ github.event.inputs.package }}/*.tgz
+      - name: set registry
+        run: npm config set registry https://npm.pkg.github.com/
 
-  publish:
-    runs-on: macos-latest-large
-    needs: test
-    environment: npm-publish
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-
-      - name: download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ github.event.inputs.package }}
-
-      - name: setup authentication
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.TOKEN }}
-
-      - name: publish
+      - name: Publishing Package
         run: npm publish --provenance *.tgz
-
-      - name: notify slack on failure
-        if: failure()
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{"text":":pb__failed: Failed to publish a new version of ${{ github.event.inputs.package }}"}' $SLACK_WEBHOOK
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK }}
-
-      - name: notify slack on success
-        if: success()
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{"text":":dance: Successfully published a new version of ${{ github.event.inputs.package }}"}' $SLACK_WEBHOOK
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK }}
-
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NODE_OPTIONS: --max_old_space_size=4096
+        working-directory: packages/${{ github.event.inputs.package }}
