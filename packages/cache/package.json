@@ -1,5 +1,5 @@
 {
-  "name": "@actions/cache",
+  "name": "@voplica/cache",
   "version": "4.0.3",
   "preview": true,
   "description": "Actions cache lib",

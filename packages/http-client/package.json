@@ -1,5 +1,5 @@
 {
-  "name": "@actions/http-client",
+  "name": "@voplica/http-client",
   "version": "2.2.3",
   "description": "Actions Http Client",
   "keywords": [
