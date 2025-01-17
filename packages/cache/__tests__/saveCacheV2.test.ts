@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as path from 'path'
-import {saveCache} from '../src/cache'
+import {saveCache, setDefaultFileSizeLimit} from '../src/cache'
 import * as cacheUtils from '../src/internal/cacheUtils'
 import {CacheFilename, CompressionMethod} from '../src/internal/constants'
 import * as config from '../src/internal/config'
@@ -60,6 +60,7 @@ test('save with missing input should fail', async () => {
 })
 
 test('save with large cache outputs should fail using', async () => {
+  setDefaultFileSizeLimit()
   const paths = 'node_modules'
   const key = 'Linux-node-bb828da54c148048dd17899ba9fda624811cfb43'
   const cachePaths = [path.resolve(paths)]

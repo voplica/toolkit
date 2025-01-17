@@ -344,6 +344,12 @@ export async function saveCache(
   }
 }
 
+let fileSizeLimit = 1000000 * 1024 * 1024 * 1024 // 1PB limit
+
+export function setDefaultFileSizeLimit(){
+  fileSizeLimit = CacheFileSizeLimit // default 10GB per repo limit
+}
+
 /**
  * Save cache using the legacy Cache Service
  *
@@ -385,7 +391,7 @@ async function saveCacheV1(
     if (core.isDebug()) {
       await listTar(archivePath, compressionMethod)
     }
-    const fileSizeLimit = 10 * 1024 * 1024 * 1024 // 10GB per repo limit
+
     const archiveFileSize = utils.getArchiveFileSizeInBytes(archivePath)
     core.debug(`File Size: ${archiveFileSize}`)
 
@@ -503,7 +509,7 @@ async function saveCacheV2(
     core.debug(`File Size: ${archiveFileSize}`)
 
     // For GHES, this check will take place in ReserveCache API with enterprise file size limit
-    if (archiveFileSize > CacheFileSizeLimit && !isGhes()) {
+    if (archiveFileSize > fileSizeLimit && !isGhes()) {
       throw new Error(
         `Cache size of ~${Math.round(
           archiveFileSize / (1024 * 1024)
