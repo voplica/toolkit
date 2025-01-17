@@ -102,7 +102,7 @@ test('save with small cache outputs should fail on changed limit', async () => {
   expect(cacheId).toBe(-1)
   expect(logWarningMock).toHaveBeenCalledTimes(1)
   expect(logWarningMock).toHaveBeenCalledWith(
-    'Failed to save: Cache size of ~1024 MB (1048576 B) is over the 100MB limit, not saving cache.'
+    'Failed to save: Cache size of ~1024 MB (1073741824 B) is over the 100MB limit, not saving cache.'
   )
 
   const archiveFolder = '/foo/bar'
